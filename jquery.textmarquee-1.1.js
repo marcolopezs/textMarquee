@@ -76,7 +76,7 @@
 				return this;
 			}
 			
-			console.log(haveData);
+			// if we have data we can initialize, otherwise we cannot.
 			if(haveData) {
 				$.fn.textMarquee.init($this, settings);
 			}
@@ -163,10 +163,6 @@
 		// or setInterval()
 		var self = this;
 		var settings = self.settings;
-		
-		
-		console.log('initialization....');
-		
 		
 		// append a bunch of divs
 		self.creatRows($textMarquee);
@@ -278,17 +274,14 @@
 				if(typeof data[0].word === 'string') {
 					// pass data in
 					$.fn.textMarquee.wordsObject.words = data;
-					_debug('first level === string');
 					return true;
 				} else if(typeof data[0][0] === 'string') {
 					// one level deeper
 					$.fn.textMarquee.wordsObject.words = data[0];
-					_debug('second level === string');
 					return true;
 				} else if(typeof data[0][0][0] === 'string') {
 					// one level deeper!
 					$.fn.textMarquee.wordsObject.words = data[0][0];
-					_debug('third level === string');
 					return true;
 				} else {
 					_debug('The processData method expects a simplified object. Please provide an array of words.');
@@ -306,13 +299,13 @@
 	
 	$.fn.textMarquee.creatRows = function($textMarquee) {
 		
-		console.log('creating rows....');
-		
-		
 		var settings = this.settings;
+		
 		for(var i=0; i < settings.rows; i++) {
+			
 			// row wrapper
 			var $row = $('<'+settings.rowWrapper+' class="row">');
+			
 			// we actually need to inner wrappers
 			var $target = $('<div class="target">');
 			
@@ -334,20 +327,11 @@
 	// takes a jquery object
 	$.fn.textMarquee.writeWordsToRows = function($textMarquee) {
 		
-		console.log('writing words to rows....');
-		
-		
 		// handy reference to pass into anonymous functions
 		var self = this;
 		var settings = self.settings;
 		// array	
 		var words = self.wordsObject.words;
-		
-		console.log("words are funny");
-		console.log(words);
-		// cast as jQuery
-		// ERROR: if cast as jquery, it is an object around an array {[]} and the .each will not iterate the items within the array
-		//var $words = $(words);
 		
 		// rows generated
 		var $rows = $textMarquee.children(settings.rowWrapper);
@@ -361,6 +345,9 @@
 			// width
 			// height
 			// based on calculation of all children....
+			// alter opacity of every other row	
+			
+			var $row = $(row);
 			
 			var $target = $('.target', row);
 			
@@ -376,12 +363,8 @@
 				words = $._shuffle(words);
 			};	
 			
-			// print them out!
-			// ERROR: 
-			//$.each($words, function(index, word) {
+			
 			$.each(words, function(index, word) {
-					console.log('word:');
-					console.log(word);
 					
 					// cast as jQuery?
 					var $word = $(word);
@@ -390,8 +373,6 @@
 					// wrapper
 					var $wordWrapper = $('<'+self.settings.wordWrapper+' class="word">');
 					$wordWrapper.append(word.word);		
-					
-					console.log($wordWrapper);
 					
 					// debug?
 					if(settings.debugWords == true) {
@@ -427,10 +408,6 @@
 			
 			// double the childTotalWidth for rowWidth, and add 2 px buffer 
 			rowWidth = ((childTotalWidth*2)+2);
-			
-			console.log('width vars:');
-			console.log(childTotalWidth);
-			console.log(rowWidth);
 			
 			// set $target width before cloning
 			$target.css({
@@ -478,8 +455,6 @@
 	 */
 	$.fn.textMarquee.animateRows = function($textMarquee) {
 		
-		console.log('animating rows....');
-		
 		var self = this;
 		var settings = self.settings;
 		var pauseTime = settings.pauseTime;
@@ -495,20 +470,30 @@
 		var ticker = 0;
 		
 	
-	// --------- simple implementation -----------------------------------------------------------
-		// fire the animation once!
+		// 
 		$.each(rows, function(index, row) {
-			$row = $(row);
+			var $row = $(row);
+			
+			var posNeg = 1;
+			
+			// flip posNeg on each pass
+			if(posNeg == 1) {
+				posNeg = -1;
+			} else {
+				posNeg = 1;
+			}
 			
 			// add the unique timeout to the data object of each row
 			if(settings.randomizeSpeed == true) {
 				// set limiters
-				if(!settings.speedVariant || settings.speedVariant > 10000 || settings.speedVariant < 0) {
+				if(!settings.speedVariant || settings.speedVariant > 45000 || settings.speedVariant < 0) {
 					settings.speedVariant = 100;
 					_debug('speedVariant is either >1000 or <0. reset to 100.');
 				}
 				
-				var rowSpeedVariant = Math.floor(Math.random() * settings.speedVariant);	
+				// randomize & positive/negative flip
+				var rowSpeedVariant = (Math.floor(Math.random() * settings.speedVariant)*posNeg);	
+			
 			} else {
 				// otherwise no variation
 				var rowSpeedVariant = 0;
@@ -521,60 +506,42 @@
 				
 			// add the data object 	
 			$row.data('marqueeRow', data);
-	
-	
-			// first run!!!!! reenable when debugged !!!!!!!!!!!!!
-			
-			// prep the object with some css
-			$row.css({'margin-left': -5});
-			// run the animation once
-			$row.animate({
-				'margin-left' : '-'+animateLeft
-			}, data.rowTimeout, 'linear');
+
 		});
 		
-	
-		
-		
-		
-		// get the rows and animate them		
+
 		$.each(rows, function(index, row) {
 			
 			var $row = $(row);
-			// get the unique speed
 			var rowUniqueSpeed = $row.data('marqueeRow').rowTimeout;
 			
-			// use a self-executing function to run the animation loop repeatedly after the first run
-			(function loop() {
+			
+			(function loop($row, rowUniqueSpeed) {
 				
-				console.log('loop() called & running');
+				var pointer = $row
 				
-				setTimeout(function() {
+				$row.animate({
+					'margin-left' : '-'+animateLeft
+				}, rowUniqueSpeed, 'linear', function() {
+					// no arguments are sent to an animation callback function,
+					// however 'this' = the currently animating DOM element
+					var $this = $(this);
+					// query the speed again
+					var rowUniqueSpeed = $this.data('marqueeRow').rowTimeout;
+					// reset to starting point
+					$this.css({'margin-left': '0'});
+					// recursively call the loop
+					loop($this, rowUniqueSpeed); // recursion
+					_debug('restart loop!');
+				});
+			
 				
-					console.log('setTimeout()');
-				
-					// help the loop along?
-					var adjustedRowUniqueSpeed = (rowUniqueSpeed - 10);
-				
-					// start over 
-					$row.css({'margin-left': -5});
-					// run animation
-					$row.animate({
-							'margin-left' : '-'+animateLeft
-						}, adjustedRowUniqueSpeed, 'linear');
-				
-					console.log('tick (before)' + index);
-					
-					loop();  // call loop again!
-				
-					console.log('tick (after)' + index);
-					
-				// reuse the unique speed on each timeout
-				}, rowUniqueSpeed); 
-		
-			})();
+			})($row, rowUniqueSpeed); // self executing
+			
+			
 		
 		});
+
 		
 	};
 	
@@ -629,10 +596,10 @@
 		altJSON:						null,			// if loadAjax is false, altJSON = the json data to use instead.
 		//speed:						400,			// speed of text - DEPRACATED
 		randomizeSpeed: 				true,			// should all textMarquees run the same speed? 
-		speedVariant: 					8000,			// how much variance between textMarquees?
+		speedVariant: 					30000,			// how much variance between textMarquees?
 		fxAnimation: 					'scroll',		// what kind of animation? 
 		autoScroll: 					true,			// should appear to continually scroll
-		pauseTime: 						80000,			// time between scrolls.  should be 'zero' if continuous is truly going to be attained
+		pauseTime: 						90000,			// time between scrolls.  should be 'zero' if continuous is truly going to be attained
 		pauseOnHover: 					false,			// should animation stop if mouse hovers?
 		shuffleWords: 					true,			// if multiple lines of text in a row, we will randomize the text strings
 		wordWrapper: 					'span',
