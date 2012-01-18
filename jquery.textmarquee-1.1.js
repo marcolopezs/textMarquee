@@ -9,7 +9,7 @@
 (function($) {
 	
 	// version of slider
-	var version = '1.0';
+	var version = '1.1.1';
 	
 	// the plugin namespace
 	// $.fn.textMarquee.method = function() {} // adding methods
@@ -223,15 +223,19 @@
 	$.fn.textMarquee.wordsObject = {
 		fetchData: function($textMarquee, settings) {
 								
+								var $textMarquee = $textMarquee;
+								var settings = settings;
 								var dataType = settings.dataType;
 								var ajaxUrl = settings.ajaxUrl;
 								var context = self.selector;
-								var $textMarquee = $textMarquee;
-								var settings = settings;
-																
+								var ajaxTimeout = 0;
+								if(settings.useAjaxTimeout == true) {
+									ajaxTimeout = settings.ajaxTimeout;
+								} 
 								$.ajax({
 									dataType: 	dataType,
 									url: 		ajaxUrl,
+									timeout:	ajaxTimeout,
 									//context:	context // a dom element... needed?
 									success: 	function(data) {
 													_debug('success!');
@@ -241,9 +245,17 @@
 													}
 													
 										},
-									error: 		function(data) {
-													_debug('error! the ajax request has failed');
-													_debug(data);
+									error: 		function(XMLHttpRequest, textStatus, errorThrown) {
+													_debug('Ajax request has failed.  Error: '+ textStatus + ' ' + errorThrown);
+													
+													if(settings.useAltJSONifAjaxFail == true) {
+														if(settings.altJSON != null) {
+															$.fn.textMarquee.wordsObject.processData(settings.altJSON);
+														} else {
+															_debug('retry with altJSON has failed. No data is available.');
+														}
+													}
+													
 										},
 									complete:	function() {
 													// regardless of success or error, will run this function
@@ -537,8 +549,6 @@
 			
 				
 			})($row, rowUniqueSpeed); // self executing
-			
-			
 		
 		});
 
@@ -594,6 +604,9 @@
 		dataType: 						'json',
 		ajaxUrl: 						null,			// ajax url to get words
 		altJSON:						null,			// if loadAjax is false, altJSON = the json data to use instead.
+		useAjaxTimeout:					true,			// enforce a timeout on the ajax request
+		ajaxTimeout:					4000,			// miliseconds
+		useAltJSONifAjaxFail:			false,			// if the ajax request fails, the JSON object 'altJSON' will be used,if provided
 		//speed:						400,			// speed of text - DEPRACATED
 		randomizeSpeed: 				true,			// should all textMarquees run the same speed? 
 		speedVariant: 					30000,			// how much variance between textMarquees?
